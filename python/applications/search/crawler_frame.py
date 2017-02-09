@@ -7,7 +7,6 @@ from time import time
 from collections import defaultdict
 from analytics import Analytics
 import lxml.html
-import urlparse
 from urlparse import urljoin
 import tldextract
 from lxml import etree
@@ -113,7 +112,6 @@ def extract_next_links(raw_data):
                 data.out_links = None
                 continue
 
-
             # Reading the HTML string page data and parsing it to find all URLs
             try:
                 html = lxml.html.fromstring(data.content)
@@ -165,10 +163,18 @@ def is_valid(url):
 
     This is a great place to filter out crawler traps.
     '''
+
+    # Getting the record analytics as needed
+    analytics = Analytics()
+    paths = analytics.get('PATHS')
+
     parsed = urlparse(url)
     if parsed.scheme not in set(["http", "https"]):
         return False
     try:
+        if paths[parsed.path] > CRAWLER_TRAP_THRESHOLD:
+            print '[ERROR] Invalid Crawler Trap URL found'
+            return False
         return ".ics.uci.edu" in parsed.hostname \
             and not re.match(".*\.(css|js|bmp|gif|jpe?g|ico" + "|png|tiff?|mid|mp2|mp3|mp4"\
             + "|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf" \
