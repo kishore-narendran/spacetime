@@ -25,7 +25,7 @@ url_count = (set()
     if not os.path.exists("successful_urls.txt") else 
     set([line.strip() for line in open("successful_urls.txt").readlines() if line.strip() != ""]))
 MAX_LINKS_TO_DOWNLOAD = 3000
-CRAWLER_TRAP_THRESHOLD = 5000
+CRAWLER_TRAP_THRESHOLD = 500
 
 @Producer(ProducedLink)
 @GetterSetter(OneUnProcessedGroup)
@@ -66,7 +66,9 @@ class CrawlerFrame(IApplication):
             self.done = True
 
     def shutdown(self):
+        analytics = Analytics()
         print "downloaded ", len(url_count), " in ", time() - self.starttime, " seconds."
+        analytics.write_to_file()
         pass
 
 def save_count(urls):
@@ -86,6 +88,8 @@ def process_url_group(group, useragentstr):
 '''
 STUB FUNCTIONS TO BE FILLED OUT BY THE STUDENT.
 '''
+
+
 def extract_next_links(raw_data):
     analytics = Analytics()
 
@@ -103,13 +107,17 @@ def extract_next_links(raw_data):
     max_links_url = None
 
     for data in raw_data:
+
+        # Finding the final URL if there is a redirection
+        final_data_url = data.final_url if data.is_redirected else data.url
+
         if data.http_code < 400:
             # All processing in case of success happens here
 
             # Finding the paths and storing them with respect to domain, and subdomain
-            parsed_url = urlparse(data.url)
+            parsed_url = urlparse(final_data_url)
             if paths[parsed_url.path] > CRAWLER_TRAP_THRESHOLD:
-                invalid_links.append(data.url)
+                invalid_links.append(final_data_url)
                 data.bad_url = True
                 data.out_links = None
                 continue
@@ -121,19 +129,19 @@ def extract_next_links(raw_data):
             except etree.XMLSyntaxError:
                 print '[EXCEPTION CAUGHT]'
                 print data.content
-                invalid_links.append(data.url)
+                invalid_links.append(final_data_url)
                 data.bad_url = True
                 data.out_links = None
                 continue
 
             # Converting the relative links to absolute links
-            links = [urljoin(data.url, link) for link in links]
+            links = [urljoin(final_data_url, link) for link in links]
 
             # Storing the links extracted from the HTML page, and the page's URL
             output_links += links
 
             # Finding the domain and subdomain for the URL and updating the statistics
-            ext = tldextract.extract(data.url)
+            ext = tldextract.extract(final_data_url)
             sub_domains[ext.subdomain] += 1
             domains[ext.domain] += 1
             paths[parsed_url.path] += 1
@@ -141,12 +149,12 @@ def extract_next_links(raw_data):
             # Updating the URL with the most number of outgoing links
             if len(links) > max_links:
                 max_links = len(links)
-                max_links_url = data.url
+                max_links_url = final_data_url
 
             data.bad_url = False
             data.out_links = links
         else:
-            invalid_links.append(data.url)
+            invalid_links.append(final_data_url)
             data.bad_url = True
             data.out_links = None
 
@@ -155,8 +163,9 @@ def extract_next_links(raw_data):
     analytics.set('PATHS', paths)
     analytics.merge('MAX_OUT_LINKS', (max_links, max_links_url))
     analytics.merge('INVALID_LINKS', invalid_links)
-    analytics.write_to_file()
+    # analytics.write_to_file()
     return output_links
+
 
 def is_valid(url):
     '''
@@ -175,7 +184,7 @@ def is_valid(url):
         return False
     try:
         if paths[parsed.path] > CRAWLER_TRAP_THRESHOLD:
-            print '[ERROR] Invalid Crawler Trap URL found'
+            # print '[ERROR] Invalid Crawler Trap URL found'
             return False
         return ".ics.uci.edu" in parsed.hostname \
             and not re.match(".*\.(css|js|bmp|gif|jpe?g|ico" + "|png|tiff?|mid|mp2|mp3|mp4"\
