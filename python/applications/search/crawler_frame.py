@@ -109,14 +109,20 @@ def extract_next_links(raw_data):
     for data in raw_data:
 
         # Finding the final URL if there is a redirection
-        final_data_url = data.final_url if data.is_redirected else data.url
+        if data.is_redirected is True:
+            final_data_url = data.final_url
+        else:
+            final_data_url = data.url
+        # final_data_url = data.final_url if data.is_redirected else data.url
+        print final_data_url
 
         if data.http_code < 400:
             # All processing in case of success happens here
 
             # Finding the paths and storing them with respect to domain, and subdomain
             parsed_url = urlparse(final_data_url)
-            if paths[parsed_url.path] > CRAWLER_TRAP_THRESHOLD:
+            if paths[parsed_url.path] > CRAWLER_TRAP_THRESHOLD or parsed_url.path.count('../') > 0:
+                print 'BAD LINK'
                 invalid_links.append(final_data_url)
                 data.bad_url = True
                 data.out_links = None
@@ -126,7 +132,7 @@ def extract_next_links(raw_data):
             try:
                 html = lxml.html.fromstring(data.content)
                 links = html.xpath('//a/@href')
-            except etree.XMLSyntaxError:
+            except etree.XMLSyntaxError or etree.Par:
                 print '[EXCEPTION CAUGHT]'
                 print data.content
                 invalid_links.append(final_data_url)

@@ -88,3 +88,6 @@ class Analytics:
         '''
         with open(self.filename, 'wb') as file_handle:
             pickle.dump(self.analytics, file_handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+a = Analytics()
+print a.analytics
