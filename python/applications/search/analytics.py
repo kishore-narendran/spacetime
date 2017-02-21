@@ -21,7 +21,7 @@ class Analytics:
         values, if not it creates an empty dict() to record analytics
         '''
         self.filename = 'analytics.dat'
-        self.valid_labels = ['DOMAINS', 'SUB_DOMAINS', 'PATHS', 'MAX_OUT_LINKS', 'INVALID_LINKS']
+        self.valid_labels = ['DOMAINS', 'SUB_DOMAINS', 'PATHS', 'MAX_OUT_LINKS', 'INVALID_LINKS', 'TIME_STATS']
         if os.path.isfile(self.filename):
             with open(self.filename, 'rb') as file_handle:
                 self.analytics = pickle.load(file_handle)
@@ -31,7 +31,8 @@ class Analytics:
                 'SUB_DOMAINS': defaultdict(int),
                 'PATHS': defaultdict(int),
                 'MAX_OUT_LINKS': (None, -1),
-                'INVALID_LINKS': []
+                'INVALID_LINKS': [],
+                'TIME_STATS': (-1, -1)
             }
 
     def merge(self, label, metric):

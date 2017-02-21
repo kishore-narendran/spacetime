@@ -68,6 +68,10 @@ class CrawlerFrame(IApplication):
     def shutdown(self):
         analytics = Analytics()
         print "downloaded ", len(url_count), " in ", time() - self.starttime, " seconds."
+        time_stats = analytics.get('TIME_STATS')
+        time_stats[0] += len(url_count)
+        time_stats[1] += (time() - self.starttime)
+        analytics.set('TIME_STATS', time_stats)
         analytics.write_to_file()
         pass
 
